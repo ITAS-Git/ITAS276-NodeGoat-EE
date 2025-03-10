@@ -28,4 +28,4 @@ jobs:
           context: .
           file: ./Dockerfile  # Change if Dockerfile is in a different location
           push: true
-          tags: your-dockerhub-username/your-repo-name:latest
+          tags: ed-emeruwa-assignment1-276/ITAS276-NodeGoat-EE:latest
