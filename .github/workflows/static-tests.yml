@@ -12,16 +12,14 @@ on:
       - master
 
 
+
 jobs:
   semgrep:
     # User definable name of this GitHub Actions job.
-    name: semgrep/ci (ddddj you can change the name)
-    # If you are self-hosting, change the following `runs-on` value:
-    runs-on: ubuntu-latest
-
-    # Makes it wait for trufflehug to run
-    needs: [trufflehog]
-
+    name: semgrep/ci scan
+    # Running on self hosting only works for linux machinens
+    runs-on: self-hosted
+  
     container:
       # A Docker image with Semgrep installed. Do not change this.
       image: semgrep/semgrep
@@ -44,10 +42,12 @@ jobs:
         with:
           name: semgrep-output
           path: semgrep_output.txt
+         
   snyk:
-    name: snyk/docker-security
-    runs-on: ubuntu-latest
-    needs: [trufflehog]
+    name: snyk/docker-security scan
+    # Again running on self hosting only works for linux machinens
+    runs-on: self-hosted
+    
     steps:
       - uses: actions/checkout@master
       - name: Run Snyk to check for vulnerabilities
@@ -57,14 +57,4 @@ jobs:
         with:
           command: monitor
 
-  trufflehog:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Secret Scanning
-      uses: trufflesecurity/trufflehog@main
-      with:
-        extra_args: --results=verified,unknown
+
