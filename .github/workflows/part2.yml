@@ -17,7 +17,7 @@ jobs:
   semgrep:
     # User definable name of this GitHub Actions job.
     name: semgrep/ci scan
-    # Running on self hosting only works for linux machinens
+    # Running on self hosting only works for linux machinens should work now
     runs-on: [self-hosted, Linux]
   
     container:
