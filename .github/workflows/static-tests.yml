@@ -18,7 +18,7 @@ jobs:
     # User definable name of this GitHub Actions job.
     name: semgrep/ci scan
     # Running on self hosting only works for linux machinens
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
   
     container:
       # A Docker image with Semgrep installed. Do not change this.
@@ -46,7 +46,7 @@ jobs:
   snyk:
     name: snyk/docker-security scan
     # Again running on self hosting only works for linux machinens
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@master
