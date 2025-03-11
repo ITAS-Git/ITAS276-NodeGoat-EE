@@ -1,5 +1,5 @@
 # Name of this GitHub Actions workflow.
-name: SAST and SAC scanning using github runner
+name: SAST and SCA scanning using github runner
 on:
   # Scan changed files in PRs (diff-aware scanning):
   pull_request: {}
