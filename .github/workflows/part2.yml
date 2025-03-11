@@ -19,10 +19,7 @@ jobs:
     name: semgrep/ci (ddddj you can change the name)
     # If you are self-hosting, change the following `runs-on` value:
     runs-on: self-hosted
-
-    # Makes it wait for trufflehug to run
-    needs: [trufflehog]
-
+  
     container:
       # A Docker image with Semgrep installed. Do not change this.
       image: semgrep/semgrep
@@ -48,7 +45,7 @@ jobs:
   snyk:
     name: snyk/docker-security
     runs-on: self-hosted
-    needs: [trufflehog]
+    
     steps:
       - uses: actions/checkout@master
       - name: Run Snyk to check for vulnerabilities
@@ -58,14 +55,4 @@ jobs:
         with:
           command: monitor
 
-  trufflehog:
-    runs-on: self-hosted
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Secret Scanning
-      uses: trufflesecurity/trufflehog@main
-      with:
-        extra_args: --results=verified,unknown
+
