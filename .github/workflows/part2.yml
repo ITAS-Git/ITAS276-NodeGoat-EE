@@ -16,8 +16,8 @@ on:
 jobs:
   semgrep:
     # User definable name of this GitHub Actions job.
-    name: semgrep/ci (ddddj you can change the name)
-    # If you are self-hosting, change the following `runs-on` value:
+    name: semgrep/ci scan
+    # Running on self hosting only works for linux machinens
     runs-on: self-hosted
   
     container:
@@ -42,8 +42,10 @@ jobs:
         with:
           name: semgrep-output
           path: semgrep_output.txt
+  # Tst for scan        
   snyk:
-    name: snyk/docker-security
+    name: snyk/docker-security scan
+    # Again running on self hosting only works for linux machinens
     runs-on: self-hosted
     
     steps:
