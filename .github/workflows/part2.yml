@@ -1,5 +1,5 @@
 # Name of this GitHub Actions workflow.
-name: Static Self hosted 
+name: Static Self hosted security tests
 
 on:
   # Scan changed files in PRs (diff-aware scanning):
