@@ -44,5 +44,5 @@ jobs:
       - name: Upload Snyk Output
         uses: actions/upload-artifact@v4
         with:
-          name: synk-output
-          path: synk_output.sarif
+          name: synk-output.sarif
+          path: synk_output
