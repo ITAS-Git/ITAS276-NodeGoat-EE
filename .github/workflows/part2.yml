@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-output
-          path: semgrep_output.txt
+          path: semgrep_output.sarif
   # Tst for scan        
   snyk:
     name: snyk/docker-security scan
@@ -60,6 +60,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synk-output
-          path: synk_output.txt
+          path: synk_output.sarif
 
 
