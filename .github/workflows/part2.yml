@@ -56,5 +56,10 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
+      - name: Upload Semgrep Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: synk-output
+          path: synk_output.txt
 
 
