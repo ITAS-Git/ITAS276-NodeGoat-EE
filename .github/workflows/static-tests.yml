@@ -34,17 +34,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Build a Docker image
+      - uses: actions/checkout@v4
+      - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/docker@master
-        continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_APP_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: edemeruwa/itas276-assignment1:latest
-          args: --file=Dockerfile
-      - name: Upload result
-        uses: actions/upload-artifact@v4.6.1
+          image: edemeruwa/itas276-assignment1:latest  # Change this to the image you want to scan
+          args: test --sarif-file-output=snyk_output.sarif
+      - name: Upload Snyk SARIF Output
+        uses: actions/upload-artifact@v4
         with:
-          name: snyk.sarif
-          path: snyk.sarif
+          name: snyk-output
+          path: snyk_output.sarif
+
+      - name: Upload Snyk results to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk_output.sarif
