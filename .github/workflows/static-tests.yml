@@ -30,32 +30,21 @@ jobs:
           path: semgrep_output.sarif
 
   snyk:
-    name: snyk/docker-security scan
     runs-on: ubuntu-latest
+
     if: (github.actor != 'dependabot[bot]')
-    
     steps:
       - uses: actions/checkout@v2
-
       - name: Build a Docker image
-        run: docker build -t edemeruwa/itas276-assignment1:latest .
-
-      - name: Authenticate Snyk
-        run: snyk auth $SNYK_TOKEN
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Run Snyk scan and output SARIF
         uses: snyk/actions/docker@master
         continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_APP_TOKEN }}
         with:
-          image: edemeruwa/itas276-assignment1:latest
-          args: --file=Dockerfile --sarif-file-output=snyk.sarif
-
+          image: shatch503/itas276-lab2:latest
+          args: --file=Dockerfile
       - name: Upload result
         uses: actions/upload-artifact@v4.6.1
         with:
-          name: snyk-scan-results
+          name: snyk.sarif
           path: snyk.sarif
