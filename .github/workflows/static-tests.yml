@@ -34,15 +34,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
+      - uses: actions/checkout@v2
+      - name: Build a Docker image
+        uses: snyk/actions/docker@master
+        continue-on-error: true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_APP_TOKEN }}
         with:
-          command: test --sarif-file-output=synk_output.sarif
-      - name: Upload Snyk Output
-        uses: actions/upload-artifact@v4
+          image: edemeruwa/itas276-assignment1:latest
+          args: --file=Dockerfile
+      - name: Upload result
+        uses: actions/upload-artifact@v4.6.1
         with:
-          name: synk-output.sarif
-          path: synk_output
+          name: snyk.sarif
+          path: snyk.sarif
