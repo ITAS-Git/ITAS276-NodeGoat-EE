@@ -1,0 +1,50 @@
+name: SAST and SCA scanning using GitHub Runner
+
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  semgrep:
+    name: semgrep/ci scan
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep ci --sarif > semgrep_output.sarif
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - name: Upload Semgrep Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-output
+          path: semgrep_output.sarif
+
+  snyk:
+    runs-on: ubuntu-latest
+
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build a Docker image
+        uses: snyk/actions/docker@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: shatch503/itas276-lab2:latest
+          args: --file=Dockerfile
+      - name: Upload result
+        uses: actions/upload-artifact@v4.6.1
+        with:
+          name: snyk.sarif
+          path: snyk.sarif
