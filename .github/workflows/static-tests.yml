@@ -8,7 +8,26 @@ on:
       - main
       - master
 
+# Define jobs
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
+
+  Discord-Begin:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Discord Notification start
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{github.repository}}
+          embed-title: "Security Pipeline jobs are starting..."
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: "[Action details ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-author-name: "${{ github.triggering_actor }}"
+          
   semgrep:
     name: semgrep/ci scan
     runs-on: ubuntu-latest
@@ -28,6 +47,14 @@ jobs:
         with:
           name: semgrep-output
           path: semgrep_output.sarif
+      - name: Discord Notification 
+        uses: tsickert/discord-webhook@v5.3.0
+        if: always() # Ensures it runs even if the job fails
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: " SAST scan using Semgrep Completed"
+          embed-description: "**Semgrep scan**  completedwith status: **${{ job.status }}** Download the [security report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) under the 'Artifacts' section."
+          embed-color: "${{ job.status == 'success' && '4166993' || job.status == 'failure' && '26158332' || '9717270' }}"
 
   snyk:
     runs-on: ubuntu-latest
@@ -48,3 +75,12 @@ jobs:
         with:
           name: snyk.sarif
           path: snyk.sarif
+
+      - name: Discord Notification 
+        uses: tsickert/discord-webhook@v5.3.0
+        if: always() # Ensures it runs even if the job fails
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "SCA scan using Snyk completed"
+          embed-description: "**Snyk scan** completed with status: **${{ job.status }}**"
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
