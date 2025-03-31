@@ -5,7 +5,9 @@ const {
     environmentalScripts
 } = require("../../config/config");
 
-function BenefitsHandler(db) {
+
+
+function BenefitsHandler(db)  {
     "use strict";
 
     const benefitsDAO = new BenefitsDAO(db);

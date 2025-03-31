@@ -1,5 +1,6 @@
 # Security Policy
 
+
 ## Reporting a Vulnerability
 Report to me privately if you believe you've found a security vulnerability in this project.
 
