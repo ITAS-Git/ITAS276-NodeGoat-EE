@@ -1,4 +1,4 @@
-name: SAST and SCA scanning using GitHub Runner
+name: Discord webhook Test
 
 on:
   pull_request: {}
