@@ -44,7 +44,84 @@ jobs:
           embed-description: "The security analysis pipeline has started for the **${{ github.ref_name }}** branch. [View details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" # Description with a link
           embed-author-name: "${{ github.triggering_actor }}" # The GitHub user who triggered the workflow
 
- 
+  # Job to perform static application security testing using Semgrep
+  semgrep:
+    # User-defined name for this job
+    name: Semgrep Scan
+    # Specifies the runner environment for this job (self-hosted Linux machines)
+    runs-on: [self-hosted, Linux]
+    # Define the container to run the Semgrep analysis in
+    container:
+      # The official Semgrep Docker image
+      image: semgrep/semgrep
+    # Prevent this job from running on pull requests initiated by Dependabot
+    if: (github.actor != 'dependabot[bot]')
+    # Define the steps to be executed in this job
+    steps:
+      # Step to checkout the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      # Step to run the Semgrep CI command and save the output
+      - name: Run Semgrep Analysis
+        run: semgrep ci --sarif --output=semgrep_output.sarif | tee semgrep_output.txt
+        # Environment variables to be passed to the Semgrep command
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }} # Your Semgrep AppSec Platform token stored as a secret
+      # Step to upload the Semgrep SARIF output as an artifact
+      - name: Upload Semgrep SARIF Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep_output.sarif
+      # Step to send a Discord notification when the Semgrep job completes
+      - name: Discord Notification - Semgrep Completed
+        uses: tsickert/discord-webhook@v5.3.0
+        # Ensures this step runs regardless of the job outcome (success or failure)
+        if: always()
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }} # Your Discord webhook URL
+          embed-title: "Semgrep Scan Completed" # Title of the Discord embed
+          embed-description: "**Semgrep scan** completed with status: **${{ job.status }}**. You can download the [Semgrep analysis report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) under the 'Artifacts' section." # Description with a link to artifacts
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on job status (green for success, red for failure, yellow otherwise)
+
+  # Job to perform software composition analysis using Snyk
+  snyk:
+    # User-defined name for this job
+    name: Snyk Scan
+    # Specifies the runner environment for this job (self-hosted Linux machines)
+    runs-on: [self-hosted, Linux]
+    # Define the steps to be executed in this job
+    steps:
+      # Step to checkout the repository code
+      - name: Checkout Code
+        uses: actions/checkout@master # Using 'master' is generally discouraged, 'v4' is recommended for consistency
+      # Step to run the Snyk monitor command to check for vulnerabilities
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master # Using 'master' is generally discouraged, specify a version
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }} # Your Snyk API token stored as a secret
+        with:
+          command: monitor
+          sarif: true # Generate SARIF output
+          output: snyk_output.sarif # Specify the output file name
+      # Step to upload the Snyk SARIF output as an artifact
+      - name: Upload Snyk SARIF Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-report
+          path: snyk_output.sarif
+      # Step to send a Discord notification when the Snyk job completes
+      - name: Discord Notification - Snyk Completed
+        uses: tsickert/discord-webhook@v5.3.0
+        # Ensures this step runs regardless of the job outcome
+        if: always()
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }} # Your Discord webhook URL
+          embed-title: "Snyk Scan Completed" # Title of the Discord embed
+          embed-description: "**Snyk scan** completed with status: **${{ job.status }}**. You can download the [Snyk analysis report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) under the 'Artifacts' section." # Description with a link to artifacts
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on job status
+
+  # Job to send a Discord notification when the entire workflow completes
   Discord-End:
     # Specifies that this job will only run after the 'semgrep' and 'snyk' jobs have completed (regardless of their status)
     needs: [Discord-Begin, semgrep, snyk]
