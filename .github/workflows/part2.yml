@@ -24,26 +24,6 @@ permissions:
 
 # Define the jobs that will run as part of this workflow
 jobs:
-  # Job to send a Discord notification when the workflow starts
-  Discord-Begin:
-    # Specifies the runner environment for this job
-    runs-on: ubuntu-latest
-    # Define the steps to be executed in this job
-    steps:
-      # Step to send a Discord notification
-      - name: Discord Notification - Workflow Start
-        # Uses the community-maintained Discord webhook action
-        uses: tsickert/discord-webhook@v5.3.0
-        # Configure the action with webhook details and message content
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }} # Your Discord webhook URL stored as a secret
-          username: ${{ github.repository }} # Sets the username for the Discord message
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
-          embed-title: "Security Pipeline Started" # Title of the Discord embed
-          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" # Link to the specific workflow run
-          embed-description: "The security analysis pipeline has started for the **${{ github.ref_name }}** branch. [View details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" # Description with a link
-          embed-author-name: "${{ github.triggering_actor }}" # The GitHub user who triggered the workflow
-
   # Job to perform static application security testing using Semgrep
   semgrep:
     # User-defined name for this job
@@ -58,6 +38,13 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     # Define the steps to be executed in this job
     steps:
+      # Step to send a Discord notification at the start of the job
+      - name: Discord Notification - Semgrep Start
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "Semgrep Scan Started"
+          embed-description: "Semgrep scan is starting for the **${{ github.ref_name }}** branch."
       # Step to checkout the repository code
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -92,6 +79,13 @@ jobs:
     runs-on: [self-hosted, Linux]
     # Define the steps to be executed in this job
     steps:
+      # Step to send a Discord notification at the start of the job
+      - name: Discord Notification - Snyk Start
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "Snyk Scan Started"
+          embed-description: "Snyk scan is starting for the **${{ github.ref_name }}** branch."
       # Step to checkout the repository code
       - name: Checkout Code
         uses: actions/checkout@master # Using 'master' is generally discouraged, 'v4' is recommended for consistency
@@ -124,7 +118,7 @@ jobs:
   # Job to send a Discord notification when the entire workflow completes
   Discord-End:
     # Specifies that this job will only run after the 'semgrep' and 'snyk' jobs have completed (regardless of their status)
-    needs: [Discord-Begin, semgrep, snyk]
+    needs: [semgrep, snyk]
     # Specifies the runner environment for this job
     runs-on: ubuntu-latest
     # Define the steps to be executed in this job
