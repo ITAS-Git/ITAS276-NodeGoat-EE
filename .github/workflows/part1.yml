@@ -23,8 +23,12 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          embed-title: "Push Docker Image to Docker Hub Started"
-          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch."
+          username: ${{ github.repository }}
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
+          embed-title: "Pushing Docker Image to Docker Hub Started"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch. [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-author-name: "${{ github.triggering_actor }}"
 
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -68,6 +72,9 @@ jobs:
         if: always() # Ensures this step runs even if the job fails
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
           embed-title: "Push Docker Image to Docker Hub Completed"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch completed with status: **${{ job.status }}**."
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on job status
