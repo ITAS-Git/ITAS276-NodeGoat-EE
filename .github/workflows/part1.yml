@@ -1,3 +1,4 @@
+# Name of this GitHub Actions workflow.
 name: Publish Docker Image
 
 # Define the trigger for workflow to run
@@ -7,7 +8,7 @@ on: [push, pull_request]
 jobs:
   push_to_registry:
     name: Push Docker Image to Docker Hub
-    # Define where to run
+    # Specifies where to run
     runs-on: ubuntu-latest
     # Define permissions
     permissions:
@@ -15,8 +16,16 @@ jobs:
       contents: read
       attestations: write
       id-token: write
-
+    # Define the steps to be executed in this job
     steps:
+      # Step to send a Discord notification at the start of the job
+      - name: Discord Notification - Job Start
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "Push Docker Image to Docker Hub Started"
+          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch."
+
       - name: Check out the repository
         uses: actions/checkout@v4
       # Login into dockerhub using credentials
@@ -25,7 +34,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          
+
       # extracts metadata (tags and labels) for a Docker image
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -45,10 +54,20 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      # Creates an attestation with information about generated image and uplads it to dockerhub to 
+      # Creates an attestation with information about generated image and uplads it to dockerhub
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: index.docker.io/edemeruwa/itas276-assignment1
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      # Step to send a Discord notification when the job completes
+      - name: Discord Notification - Job Completed
+        uses: tsickert/discord-webhook@v5.3.0
+        if: always() # Ensures this step runs even if the job fails
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "Push Docker Image to Docker Hub Completed"
+          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch completed with status: **${{ job.status }}**."
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on job status
