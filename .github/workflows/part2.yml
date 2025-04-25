@@ -1,101 +1,65 @@
 # Name of this GitHub Actions workflow.
-name: Static Self hosted security tests
+name: Static Self-hosted Security Tests
 
+# Define when this workflow will run
 on:
   # Scan changed files in PRs (diff-aware scanning):
-  pull_request: {}
+  pull_request:
+    # Trigger on any activity within a pull request
   # Scan on-demand through GitHub Actions interface:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    # Allows manual triggering of the workflow
   # Scan mainline branches if there are changes to .github/workflows/semgrep.yml:
   push:
     branches:
       - main
       - master
+    paths:
+      - '.github/workflows/semgrep.yml' # Only trigger if this file changes
 
-
-# Define jobs
+# Set permissions for the workflow
 permissions:
-  contents: read
-  security-events: write
+  contents: read # Allows the workflow to checkout your code
+  security-events: write # Allows the workflow to write security events (like SARIF results)
 
+# Define the jobs that will run as part of this workflow
 jobs:
-
+  # Job to send a Discord notification when the workflow starts
   Discord-Begin:
-      runs-on: ubuntu-latest
-      steps:
-      - name: Discord Notification start
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: ${{github.repository}}
-          embed-title: "Security Pipeline jobs are starting..."
-          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: "[Action details ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          embed-author-name: "${{ github.triggering_actor }}"
-          
-  semgrep:
-    # User definable name of this GitHub Actions job.
-    name: semgrep/ci scan
-    # Running on self hosting only works for linux machinens should work now
-    runs-on: [self-hosted, Linux]
-  
-    container:
-      # A Docker image with Semgrep installed. Do not change this.
-      image: semgrep/semgrep
-
-    # Skip any PR created by dependabot to avoid permission issues:
-    if: (github.actor != 'dependabot[bot]')
-
+    # Specifies the runner environment for this job
+    runs-on: ubuntu-latest
+    # Define the steps to be executed in this job
     steps:
-      # Fetch project source with GitHub Actions Checkout. Use either v3 or v4.
-      - uses: actions/checkout@v4
-      # Run the "semgrep ci" command on the command line of the docker image.
-      - run: semgrep ci | tee semgrep_output.txt
-        env:
-          # Connect to Semgrep AppSec Platform through your SEMGREP_APP_TOKEN.
-          # Generate a token from Semgrep AppSec Platform > Settings
-          # and add it to your GitHub secrets.
-           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-      - name: Upload Semgrep Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-output
-          path: semgrep_output.sarif
-      - name: Discord Notification (Job Completion)
+      # Step to send a Discord notification
+      - name: Discord Notification - Workflow Start
+        # Uses the community-maintained Discord webhook action
         uses: tsickert/discord-webhook@v5.3.0
-        if: always() # Ensures it runs even if the job fails
+        # Configure the action with webhook details and message content
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          embed-title: " SAST scan using Semgrep Completed"
-          embed-description: "**Semgrep scan**  completedwith status: **${{ job.status }}** Download the [security report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) under the 'Artifacts' section."
-          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
-          
-  # Tst for scan        
-  snyk:
-    name: snyk/docker-security scan
-    # Again running on self hosting only works for linux machinens
-    runs-on: [self-hosted, Linux]
-    
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }} # Your Discord webhook URL stored as a secret
+          username: ${{ github.repository }} # Sets the username for the Discord message
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
+          embed-title: "Security Pipeline Started" # Title of the Discord embed
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" # Link to the specific workflow run
+          embed-description: "The security analysis pipeline has started for the **${{ github.ref_name }}** branch. [View details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" # Description with a link
+          embed-author-name: "${{ github.triggering_actor }}" # The GitHub user who triggered the workflow
+
+ 
+  Discord-End:
+    # Specifies that this job will only run after the 'semgrep' and 'snyk' jobs have completed (regardless of their status)
+    needs: [Discord-Begin, semgrep, snyk]
+    # Specifies the runner environment for this job
+    runs-on: ubuntu-latest
+    # Define the steps to be executed in this job
     steps:
-      - uses: actions/checkout@master
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
-      - name: Upload Semgrep Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: synk-output
-          path: synk_output.sarif
-      - name: Discord Notification (Job Completion)
+      # Step to send a Discord notification
+      - name: Discord Notification - Workflow Completed
         uses: tsickert/discord-webhook@v5.3.0
-        if: always() # Ensures it runs even if the job fails
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          embed-title: "SCA scan using Snyk completed"
-          embed-description: "**Snyk scan** completed with status: **${{ job.status }}**"
-          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
-
-
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }} # Your Discord webhook URL
+          username: ${{ github.repository }} # Sets the username for the Discord message
+          embed-title: "Security Pipeline Completed" # Title of the Discord embed
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" # Link to the specific workflow run
+          embed-description: "The security analysis pipeline has completed with overall status: **${{ job.status }}**. You can find the security reports in the 'Artifacts' section of this run." # Description with a link
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on workflow status
+          embed-author-name: "${{ github.triggering_actor }}" # The GitHub user who triggered the workflow
