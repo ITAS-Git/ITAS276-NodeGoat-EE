@@ -1,45 +1,74 @@
-# Name of this GitHub Actions workflow.
+# Name of this GitHub Actions workflow
 name: Publish Docker Image
 
-# Define the trigger for workflow to run
+# Trigger workflow on push or pull request
 on: [push, pull_request]
 
-# Define jobs
+# Define the job
 jobs:
   push_to_registry:
     name: Push Docker Image to Docker Hub
-    # Specifies where to run
     runs-on: ubuntu-latest
-    # Define permissions
+
+    # Required permissions
     permissions:
       packages: write
       contents: read
       attestations: write
       id-token: write
-    # Define the steps to be executed in this job
+
     steps:
-      # Step to send a Discord notification at the start of the job
-      - name: Discord Notification - Job Start
+      # === Send Discord message: Workflow started ===
+      - name: Notify - Workflow Start
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: ${{ github.repository }}
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
-          embed-title: "Pushing Docker Image to Docker Hub Started"
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "Workflow Started: Publish Docker Image"
+          embed-description: "Triggered by **${{ github.triggering_actor }}** on branch **${{ github.ref_name }}**."
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch. [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          embed-author-name: "${{ github.triggering_actor }}"
+          embed-author-name: "${{ github.repository }}"
 
+      # === Notify: Checkout started ===
+      - name: Notify - Checkout Started
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "Checking out Repository"
+
+      # Checkout repository code
       - name: Check out the repository
         uses: actions/checkout@v4
-      # Login into dockerhub using credentials
+
+      # === Notify: Docker login started ===
+      - name: Notify - Docker Login Started
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: " Logging in to Docker Hub"
+
+      # Log in to Docker Hub using secrets
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # extracts metadata (tags and labels) for a Docker image
+      # === Notify: Metadata extraction started ===
+      - name: Notify - Metadata Extraction Started
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: " Extracting Docker Metadata"
+
+      # Extract tags and labels from repository info
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -48,7 +77,17 @@ jobs:
           tags: |
             latest
             ${{ github.event.release.tag_name }}
-      # Builds and pushes docker image from the github repo to dockerhub
+
+      # === Notify: Build and push started ===
+      - name: Notify - Build & Push Started
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "🔧 Building and Pushing Docker Image"
+
+      # Build the Docker image and push to Docker Hub
       - name: Build and Push Docker Image
         id: push
         uses: docker/build-push-action@v5
@@ -58,7 +97,17 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      # Creates an attestation with information about generated image and uplads it to dockerhub
+
+      # === Notify: Attestation started ===
+      - name: Notify - Attestation Started
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "Generating Artifact Attestation"
+
+      # Generate build attestation for Docker image
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -66,15 +115,33 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      # Step to send a Discord notification when the job completes
-      - name: Discord Notification - Job Completed
+      # === Upload SARIF file ===
+      - name: Upload SARIF Report (Optional)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      # === Notify: SARIF uploaded with download link ===
+      - name: Notify - SARIF Uploaded
+        if: always()
         uses: tsickert/discord-webhook@v5.3.0
-        if: always() # Ensures this step runs even if the job fails
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: ${{ github.repository }}
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g # Optional avatar URL
-          embed-title: "Push Docker Image to Docker Hub Completed"
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "SARIF Report Uploaded"
+          embed-description: "SARIF file uploaded. [🔽 Download SARIF](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
+
+      # === Final notification: Workflow completed ===
+      - name: Notify - Workflow Completed
+        if: always()
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: GitHub Actions
+          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
+          embed-title: "Workflow Completed"
+          embed-description: "Workflow for **${{ github.ref_name }}** finished with status: **${{ job.status }}**."
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: "Pushing Docker image to Docker Hub for the **${{ github.ref_name }}** branch completed with status: **${{ job.status }}**."
-          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}" # Sets color based on job status
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
