@@ -1,129 +1,83 @@
-name: Publish Docker Image
+# Name of this GitHub Actions workflow.
+name: security tests
 
-on: [push, pull_request]
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
-  push_to_registry:
-    name: Push Docker Image to Docker Hub
+
+  Discord-Begin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord Notification start
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
+          embed-title: "Security Pipeline jobs are starting..."
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: "[Action details ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-author-name: "${{ github.triggering_actor }}"
+
+  semgrep:
+    name: semgrep/ci scan
     runs-on: ubuntu-latest
 
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
+    container:
+      image: semgrep/semgrep
+
+    if: (github.actor != 'dependabot[bot]')
 
     steps:
-      - name: Notify - Workflow Start
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "Workflow Started: Publish Docker Image"
-          embed-description: "Triggered by **${{ github.triggering_actor }}** on branch **${{ github.ref_name }}**."
-          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-author-name: "${{ github.repository }}"
-
-      - name: Notify - Checkout Started
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "Checking out Repository"
-
-      - name: Check out the repository
-        uses: actions/checkout@v4
-
-      - name: Notify - Docker Login Started
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "🔑 Logging in to Docker Hub"
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Notify - Metadata Extraction Started
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "🧾 Extracting Docker Metadata"
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: edemeruwa/itas276-assignment1
-          tags: |
-            latest
-            ${{ github.event.release.tag_name }}
-
-      - name: Notify - Build & Push Started
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "🔧 Building and Pushing Docker Image"
-
-      - name: Build and Push Docker Image
-        id: push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Notify - Attestation Started
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "🛡️ Generating Artifact Attestation"
-
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: index.docker.io/edemeruwa/itas276-assignment1
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Upload SARIF Report (Optional)
-        if: always()
+      - uses: actions/checkout@v4
+      - run: semgrep ci --sarif > semgrep_output.sarif
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - name: Upload Semgrep Output
         uses: actions/upload-artifact@v4
         with:
-          sarif_file: results.sarif
-
-      - name: Notify - SARIF Uploaded
-        if: always()
+          name: semgrep-output
+          path: semgrep_output.sarif
+      - name: Discord Notification (Job Completion)
         uses: tsickert/discord-webhook@v5.3.0
+        if: always()
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "📦 SARIF Report Uploaded"
-          embed-description: "SARIF file uploaded. [🔽 Download SARIF](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
+          embed-title: "SAST scan using Semgrep completed"
+          embed-description: "**Semgrep scan** completed with status: **${{ job.status }}** Download the [security report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) under the 'Artifacts' section."
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
-      - name: Notify - Workflow Completed
-        if: always()
+  snyk:
+    name: snyk/docker-security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+      - name: Upload Snyk Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-output
+          path: snyk_output.sarif
+      - name: Discord Notification (Job Completion)
         uses: tsickert/discord-webhook@v5.3.0
+        if: always()
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: "Repo: edemeruwa/itas276-assignment1"
-          avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "✅ Workflow Completed"
-          embed-description: "Workflow for **${{ github.ref_name }}** finished with status: **${{ job.status }}**."
-          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-title: "SCA scan using Snyk completed"
+          embed-description: "**Snyk scan** completed with status: **${{ job.status }}**"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
