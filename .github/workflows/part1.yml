@@ -67,7 +67,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          command: monitor
+            command: test --sarif --file=package.json > snyk_output.sarif || true
       - name: Upload Snyk Output
         uses: actions/upload-artifact@v4
         with:
