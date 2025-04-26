@@ -15,7 +15,6 @@ permissions:
 
 jobs:
 
-  # Notify when workflow begins
   Discord-Begin:
     runs-on: ubuntu-latest
     steps:
@@ -29,7 +28,6 @@ jobs:
           embed-description: "[Click to view full workflow run #${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
 
-  # Semgrep job
   semgrep:
     name: semgrep/ci scan
     runs-on: ubuntu-latest
@@ -55,6 +53,7 @@ jobs:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
       - name: Upload Semgrep SARIF
+        id: upload-semgrep-sarif
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-output
@@ -67,11 +66,10 @@ jobs:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           embed-title: "✅ Semgrep SAST Scan Completed"
           embed-description: |
-            Semgrep completed with status: **${{ job.status }}**
-            [🔗 Download SARIF output](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            Semgrep completed with status: **${{ job.status }}**  
+            [⬇️ Download SARIF output](${{ steps.upload-semgrep-sarif.outputs.artifact-url }})
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
-  # Snyk job
   snyk:
     name: snyk/docker-security scan
     runs-on: ubuntu-latest
@@ -97,6 +95,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Upload Snyk SARIF
+        id: upload-snyk-sarif
         uses: actions/upload-artifact@v4
         with:
           name: snyk-output
@@ -109,6 +108,6 @@ jobs:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           embed-title: "🔍 Snyk SCA Scan Completed"
           embed-description: |
-            Snyk scan completed with status: **${{ job.status }}**
-            [🔗 View Run #${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            Snyk completed with status: **${{ job.status }}**  
+            [⬇️ Download SARIF output](${{ steps.upload-snyk-sarif.outputs.artifact-url }})
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
