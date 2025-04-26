@@ -23,7 +23,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+          username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "Workflow Started: Publish Docker Image"
           embed-description: "Triggered by **${{ github.triggering_actor }}** on branch **${{ github.ref_name }}**."
@@ -48,7 +48,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: " Logging in to Docker Hub"
 
@@ -64,7 +64,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: " Extracting Docker Metadata"
 
@@ -83,7 +83,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "🔧 Building and Pushing Docker Image"
 
@@ -103,7 +103,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "Generating Artifact Attestation"
 
@@ -128,7 +128,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "SARIF Report Uploaded"
           embed-description: "SARIF file uploaded. [🔽 Download SARIF](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
@@ -139,7 +139,7 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+           username:  Ed Emeruwa repo: ${{github.repository}}
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "Workflow Completed"
           embed-description: "Workflow for **${{ github.ref_name }}** finished with status: **${{ job.status }}**."
