@@ -1,4 +1,3 @@
-# Name of this GitHub Actions workflow.
 name: security tests
 
 on:
@@ -25,7 +24,7 @@ jobs:
           username: ${{ github.repository }}
           embed-title: "🚀 Security Pipeline Started"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: "[Click to view full workflow run #${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
 
   semgrep:
@@ -40,8 +39,11 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
           embed-title: "🛠️ Starting Semgrep Scan"
-          embed-description: "Semgrep static code analysis is starting for run #${{ github.run_id }}"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "3447003"
 
       - name: Checkout Code
@@ -64,10 +66,13 @@ jobs:
         if: always()
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
           embed-title: "✅ Semgrep SAST Scan Completed"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
-            Semgrep completed with status: **${{ job.status }}**  
-            [⬇️ Download SARIF output](${{ steps.upload-semgrep-sarif.outputs.artifact-url }})
+            [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+            [⬇️ Download SARIF Output](${{ steps.upload-semgrep-sarif.outputs.artifact-url }})
+          embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
   snyk:
@@ -79,8 +84,11 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
           embed-title: "🛠️ Starting Snyk Scan"
-          embed-description: "Snyk software composition analysis is starting for run #${{ github.run_id }}"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "3447003"
 
       - name: Checkout Code
@@ -106,8 +114,11 @@ jobs:
         if: always()
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          username: ${{ github.repository }}
           embed-title: "🔍 Snyk SCA Scan Completed"
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
-            Snyk completed with status: **${{ job.status }}**  
-            [⬇️ Download SARIF output](${{ steps.upload-snyk-sarif.outputs.artifact-url }})
+            [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+            [⬇️ Download SARIF Output](${{ steps.upload-snyk-sarif.outputs.artifact-url }})
+          embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
