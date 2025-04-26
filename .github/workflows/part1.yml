@@ -1,16 +1,12 @@
-# Name of this GitHub Actions workflow
 name: Publish Docker Image
 
-# Trigger workflow on push or pull request
 on: [push, pull_request]
 
-# Define the job
 jobs:
   push_to_registry:
     name: Push Docker Image to Docker Hub
     runs-on: ubuntu-latest
 
-    # Required permissions
     permissions:
       packages: write
       contents: read
@@ -18,57 +14,50 @@ jobs:
       id-token: write
 
     steps:
-      # === Send Discord message: Workflow started ===
       - name: Notify - Workflow Start
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "Workflow Started: Publish Docker Image"
           embed-description: "Triggered by **${{ github.triggering_actor }}** on branch **${{ github.ref_name }}**."
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-author-name: "${{ github.repository }}"
 
-      # === Notify: Checkout started ===
       - name: Notify - Checkout Started
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: GitHub Actions
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "Checking out Repository"
 
-      # Checkout repository code
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      # === Notify: Docker login started ===
       - name: Notify - Docker Login Started
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: " Logging in to Docker Hub"
+          embed-title: "🔑 Logging in to Docker Hub"
 
-      # Log in to Docker Hub using secrets
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # === Notify: Metadata extraction started ===
       - name: Notify - Metadata Extraction Started
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: " Extracting Docker Metadata"
+          embed-title: "🧾 Extracting Docker Metadata"
 
-      # Extract tags and labels from repository info
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -78,16 +67,14 @@ jobs:
             latest
             ${{ github.event.release.tag_name }}
 
-      # === Notify: Build and push started ===
       - name: Notify - Build & Push Started
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
           embed-title: "🔧 Building and Pushing Docker Image"
 
-      # Build the Docker image and push to Docker Hub
       - name: Build and Push Docker Image
         id: push
         uses: docker/build-push-action@v5
@@ -98,16 +85,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      # === Notify: Attestation started ===
       - name: Notify - Attestation Started
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "Generating Artifact Attestation"
+          embed-title: "🛡️ Generating Artifact Attestation"
 
-      # Generate build attestation for Docker image
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
@@ -115,33 +100,30 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      # === Upload SARIF file ===
       - name: Upload SARIF Report (Optional)
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
 
-      # === Notify: SARIF uploaded with download link ===
       - name: Notify - SARIF Uploaded
         if: always()
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "SARIF Report Uploaded"
+          embed-title: "📦 SARIF Report Uploaded"
           embed-description: "SARIF file uploaded. [🔽 Download SARIF](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
 
-      # === Final notification: Workflow completed ===
       - name: Notify - Workflow Completed
         if: always()
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-           username:  Ed Emeruwa repo: ${{github.repository}}
+          username: "Repo: edemeruwa/itas276-assignment1"
           avatar-url: https://gravatar.com/avatar/be5d3fe06696117c467f199ddb4f1aed?s=400&d=robohash&r=g
-          embed-title: "Workflow Completed"
+          embed-title: "✅ Workflow Completed"
           embed-description: "Workflow for **${{ github.ref_name }}** finished with status: **${{ job.status }}**."
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
