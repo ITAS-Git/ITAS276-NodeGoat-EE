@@ -1,7 +1,6 @@
 # Name of this GitHub Actions workflow.
 name: security tests
 
-# Triggers for this workflow: on PRs, manual dispatch, or push to main/master.
 on:
   pull_request: {}
   workflow_dispatch: {}
@@ -10,15 +9,13 @@ on:
       - main
       - master
 
-# Permissions for uploading security scan data
 permissions:
   contents: read
   security-events: write
 
-# Each section below defines a separate job in the pipeline.
 jobs:
 
-  # Notify at the start of the pipeline.
+  # Notify when workflow begins
   Discord-Begin:
     runs-on: ubuntu-latest
     steps:
@@ -32,19 +29,23 @@ jobs:
           embed-description: "[Click to view full workflow run #${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
 
-  # Static Application Security Testing with Semgrep.
+  # Semgrep job
   semgrep:
     name: semgrep/ci scan
     runs-on: ubuntu-latest
-
-    # Use Semgrep's official Docker container
     container:
       image: semgrep/semgrep
-
-    # Skip scans on dependabot PRs
     if: (github.actor != 'dependabot[bot]')
 
     steps:
+      - name: Notify - Starting Semgrep Scan
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "🛠️ Starting Semgrep Scan"
+          embed-description: "Semgrep static code analysis is starting for run #${{ github.run_id }}"
+          embed-color: "3447003"
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -59,7 +60,7 @@ jobs:
           name: semgrep-output
           path: semgrep_output.sarif
 
-      - name: Discord Notification - Semgrep Completed
+      - name: Notify - Semgrep Completed
         uses: tsickert/discord-webhook@v5.3.0
         if: always()
         with:
@@ -70,12 +71,20 @@ jobs:
             [🔗 Download SARIF output](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
-  # Software Composition Analysis using Snyk.
+  # Snyk job
   snyk:
     name: snyk/docker-security scan
     runs-on: ubuntu-latest
 
     steps:
+      - name: Notify - Starting Snyk Scan
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          embed-title: "🛠️ Starting Snyk Scan"
+          embed-description: "Snyk software composition analysis is starting for run #${{ github.run_id }}"
+          embed-color: "3447003"
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -93,7 +102,7 @@ jobs:
           name: snyk-output
           path: snyk_output.sarif
 
-      - name: Discord Notification - Snyk Completed
+      - name: Notify - Snyk Completed
         uses: tsickert/discord-webhook@v5.3.0
         if: always()
         with:
@@ -103,4 +112,3 @@ jobs:
             Snyk scan completed with status: **${{ job.status }}**
             [🔗 View Run #${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
-
