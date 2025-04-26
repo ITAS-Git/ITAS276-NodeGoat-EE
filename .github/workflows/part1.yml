@@ -1,39 +1,43 @@
 name: Security Tests
 
+# Define the events that trigger this workflow
 on:
-  pull_request: {}
-  workflow_dispatch: {}
+  pull_request: {}  # Trigger on pull requests
+  workflow_dispatch: {} 
   push:
     branches:
-      - main
-      - master
+      - main  # Trigger on push to the main branch
+      - master  # Trigger on push to the master branch
 
+# Define permissions for this workflow
 permissions:
-  contents: read
-  security-events: write
+  contents: read  # Only need read access to the repository contents
+  security-events: write  # Need write access for security events (e.g., security vulnerability reporting)
 
 jobs:
 
+  # Job for sending a Discord notification when the workflow starts
   discord-begin:
     name: Start Notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Run this job on the latest Ubuntu image
     steps:
       - name: Discord Notification - Workflow Started
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Use the discord-webhook action to send messages to Discord
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          username: ${{ github.repository }}
-          embed-title: "🚀 Security Pipeline Started"
-          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          embed-author-name: "${{ github.triggering_actor }}"
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}  # Secret for the Discord webhook URL
+          username: ${{ github.repository }}  # Use the GitHub repository name as the username in the webhook
+          embed-title: "🚀 Security Pipeline Started"  # Title of the message embed
+          embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"  # URL to the current pipeline run
+          embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"  # Description with link to the pipeline run
+          embed-author-name: "${{ github.triggering_actor }}"  # Actor who triggered the pipeline (e.g., a user or bot)
 
+  # Job for building and pushing the Docker image to Docker Hub
   docker-build:
     name: Build & Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use the latest Ubuntu image for this job
     steps:
       - name: Discord Notification - Start Docker Build
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Send a notification to Discord when the Docker build starts
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
@@ -41,58 +45,59 @@ jobs:
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: "Building Docker Image\n[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
-          embed-color: "3066993"
+          embed-color: "3066993"  # Set embed color for better visibility
 
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Checkout the code from the repository to the runner
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3  # Log in to Docker Hub using credentials stored in GitHub Secrets
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}  # Docker Hub username from GitHub Secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Docker Hub password from GitHub Secrets
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5  # Extract metadata such as tags and labels for the Docker image
         with:
-          images: edemeruwa/itas276-assignment1
+          images: edemeruwa/itas276-assignment1  # Docker image name
           tags: |
-            latest
-            ${{ github.event.release.tag_name || github.sha }}
+            latest  # Use "latest" as the default tag
+            ${{ github.event.release.tag_name || github.sha }}  # Tag the image with the release tag or commit SHA
 
       - name: Build and Push Docker Image
         id: push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5  # Build and push the Docker image to Docker Hub
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          context: .  # Set the build context to the current directory
+          file: ./Dockerfile  # Path to the Dockerfile
+          push: true  # Push the image after building
+          tags: ${{ steps.meta.outputs.tags }}  # Use the tags generated by the metadata action
+          labels: ${{ steps.meta.outputs.labels }}  # Use the labels generated by the metadata action
 
       - name: Discord Notification - Docker Build Finished
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Send a Discord notification when the Docker build finishes
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
-          embed-title: "✅ Docker Build Completed"
+          embed-title: "Docker Build Completed"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
             Docker Image Pushed Successfully  
-            [View on Docker Hub](https://hub.docker.com/repository/docker/edemeruwa/itas276-assignment1)
+            [View on Docker Hub](https://hub.docker.com/repository/docker/edemeruwa/itas276-assignment1)  # Link to the Docker Hub repository
           embed-author-name: "${{ github.triggering_actor }}"
-          embed-color: "3066993"
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"  # Change color based on job success/failure
 
+  # Job for running Semgrep static analysis on the code
   semgrep:
     name: Semgrep Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use Ubuntu for running Semgrep
     container:
-      image: semgrep/semgrep
-    if: (github.actor != 'dependabot[bot]')
+      image: semgrep/semgrep  # Run Semgrep inside the official Semgrep container
+    if: (github.actor != 'dependabot[bot]')  # Skip the job if the actor is Dependabot
     steps:
       - name: Notify - Starting Semgrep Scan
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Notify Discord when Semgrep scan starts
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
@@ -100,101 +105,103 @@ jobs:
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
-          embed-color: "3447003"
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Checkout the repository
 
       - name: Run Semgrep Scan
-        run: semgrep ci --sarif > semgrep_output.sarif
+        run: semgrep ci --sarif > semgrep_output.sarif  # Run Semgrep in CI mode and output results in SARIF format
         env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}  # Pass Semgrep API token
 
       - name: Upload Semgrep SARIF
         id: upload-semgrep-sarif
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # Upload the SARIF file as an artifact
         with:
           name: semgrep-output
           path: semgrep_output.sarif
 
       - name: Notify - Semgrep Completed
-        uses: tsickert/discord-webhook@v5.3.0
-        if: always()
+        uses: tsickert/discord-webhook@v5.3.0  # Notify Discord when the Semgrep scan is finished
+        if: always()  # Ensure this step runs regardless of success or failure
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
-          embed-title: "✅ Semgrep Scan Completed"
+          embed-title: "Semgrep Scan Completed"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
             [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-            [⬇️ Download SARIF Output](${{ steps.upload-semgrep-sarif.outputs.artifact-url }})
+            [⬇️ Download SARIF Output](${{ steps.upload-semgrep-sarif.outputs.artifact-url }})  # Link to download the SARIF file
           embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
+  # Job for running Snyk dependency scan on the project
   snyk:
     name: Snyk Dependency Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Run on Ubuntu
     steps:
       - name: Notify - Starting Snyk Scan
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Notify Discord when the Snyk scan starts
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
-          embed-title: "🛠️ Starting Snyk Scan"
+          embed-title: "Starting Snyk Scan"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: "[View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           embed-author-name: "${{ github.triggering_actor }}"
-          embed-color: "3447003"
+          embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Checkout the repository
 
       - name: Install Snyk CLI
-        run: npm install -g snyk
+        run: npm install -g snyk  # Install the Snyk CLI tool
 
       - name: Run Snyk Scan and Generate SARIF
-        run: snyk test --sarif --file=package.json > snyk_output.sarif || true
+        run: snyk test --sarif --file=package.json > snyk_output.sarif || true  # Run Snyk scan and save the results as SARIF
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # Snyk API token from GitHub Secrets
 
       - name: Upload Snyk SARIF
         id: upload-snyk-sarif
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # Upload the Snyk scan SARIF output as an artifact
         with:
           name: snyk-output
           path: snyk_output.sarif
 
       - name: Notify - Snyk Completed
-        uses: tsickert/discord-webhook@v5.3.0
-        if: always()
+        uses: tsickert/discord-webhook@v5.3.0  # Send notification when the Snyk scan finishes
+        if: always()  # Ensure this step runs regardless of success or failure
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
-          embed-title: "🔍 Snyk Scan Completed"
+          embed-title: "Snyk Scan Completed"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
             [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-            [⬇️ Download SARIF Output](${{ steps.upload-snyk-sarif.outputs.artifact-url }})
+            [⬇️ Download SARIF Output](${{ steps.upload-snyk-sarif.outputs.artifact-url }})  # Link to download the Snyk SARIF file
           embed-author-name: "${{ github.triggering_actor }}"
           embed-color: "${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '9807270' }}"
 
+  # Job for sending a final notification about the workflow result
   discord-end:
     name: End Notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Run this job on Ubuntu
     needs:
-      - semgrep
-      - snyk
-    if: always()
+      - semgrep  # Wait for the Semgrep job to complete
+      - snyk  # Wait for the Snyk job to complete
+    if: always()  # Ensure this step runs regardless of success or failure
     steps:
       - name: Discord Notification - Workflow Completed
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v5.3.0  # Send a notification to Discord when the workflow completes
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
-          embed-title: "🏁 Security Workflow Finished"
+          embed-title: "Security Workflow Finished"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           embed-description: |
             [View Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-            Final status: **${{ needs.semgrep.result == 'success' && needs.snyk.result == 'success' && '✅ Success' || '❌ Failure' }}**
+            Final status: **${{ needs.semgrep.result == 'success' && needs.snyk.result == 'success' && '✅ Success' || '❌ Failure' }}**  # Display success or failure status
           embed-author-name: "${{ github.triggering_actor }}"
-          embed-color: "${{ needs.semgrep.result == 'success' && needs.snyk.result == 'success' && '3066993' || '15158332' }}"
+          embed-color: "${{ needs.semgrep.result == 'success' && needs.snyk.result == 'success' && '3066993' || '15158332' }}"  # Color based on success/failure
