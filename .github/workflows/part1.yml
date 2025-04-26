@@ -62,12 +62,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Run Snyk to check for vulnerabilities and generate SARIF
+        run: snyk test --sarif --file=package.json > snyk_output.sarif || true
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-            command: test --sarif --file=package.json > snyk_output.sarif || true
+           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       - name: Upload Snyk Output
         uses: actions/upload-artifact@v4
         with:
