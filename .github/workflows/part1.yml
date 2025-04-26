@@ -33,7 +33,7 @@ jobs:
       - name: Discord Webhook Action (Start Docker Build)
         uses: tsickert/discord-webhook@v7.0.0
         with: 
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           username: ${{ github.repository }}
           embed-title: "🐳 Starting Docker Build & Pipeline"
           embed-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
